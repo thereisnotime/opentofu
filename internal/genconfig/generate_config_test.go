@@ -538,6 +538,59 @@ resource "tfcoremock_simple_resource" "empty" {
   single = null
 }`,
 		},
+		"map_nested_attribute_keys_needing_quotes": {
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"subnets": {
+						NestedType: &configschema.Object{
+							Attributes: map[string]*configschema.Attribute{
+								"router": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+							Nesting: configschema.NestingMap,
+						},
+						Required: true,
+					},
+				},
+			},
+			addr: addrs.AbsResourceInstance{
+				Module: nil,
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "tfcoremock_simple_resource",
+						Name: "keys",
+					},
+					Key: nil,
+				},
+			},
+			provider: addrs.LocalProviderConfig{
+				LocalName: "tfcoremock",
+			},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"subnets": cty.MapVal(map[string]cty.Value{
+					"192.168.1.0/24": cty.ObjectVal(map[string]cty.Value{"router": cty.StringVal("192.168.1.1")}),
+					"plain":          cty.ObjectVal(map[string]cty.Value{"router": cty.StringVal("a")}),
+					"with ${x}":      cty.ObjectVal(map[string]cty.Value{"router": cty.StringVal("b")}),
+				}),
+			}),
+			expected: `
+resource "tfcoremock_simple_resource" "keys" {
+  subnets = {
+    "192.168.1.0/24" = {
+      router = "192.168.1.1"
+    }
+    plain = {
+      router = "a"
+    }
+    "with $${x}" = {
+      router = "b"
+    }
+  }
+}`,
+		},
 		"jsonencode_wrapping": {
 			schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{

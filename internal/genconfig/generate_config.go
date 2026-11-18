@@ -421,7 +421,13 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 		fmt.Fprintf(buf, "%s = {\n", name)
 		for _, key := range keys {
 			buf.WriteString(strings.Repeat(" ", indent+2))
-			fmt.Fprintf(buf, "%s = {", key)
+			// Map keys such as "192.168.1.0/24" are not valid identifiers and
+			// must be written as quoted (and escaped) strings.
+			keyTok := key
+			if !hclsyntax.ValidIdentifier(keyTok) {
+				keyTok = string(hclwrite.TokensForValue(cty.StringVal(key)).Bytes())
+			}
+			fmt.Fprintf(buf, "%s = {", keyTok)
 
 			// This entire value is marked
 			if vals[key].HasMark(marks.Sensitive) {
